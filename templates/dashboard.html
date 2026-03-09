@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SafeNest</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='tactical.css') }}">
+    <style>
+        .navigator-card:hover .prism-glare {
+            transform: translateX(100%) skewX(-15deg);
+        }
+
+        .prism-glare {
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: transform 0.6s ease;
+            transform: skewX(-15deg);
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="/" class="brand">🛡️ SafeNest</a>
+        <div class="nav-links">
+            <a href="/dashboard" class="active">Student Dash</a>
+            <a href="/map">Safety Map</a>
+            <a href="/red-desk">Red Desk</a>
+            <a href="/whistleblower">Justice Portal</a>
+            <a href="/ai-tools">AI Tools</a>
+            <a href="/logout" class="btn-logout">Logout</a>
+        </div>
+    </nav>
+
+    <div id="broadcast-banner" class="broadcast-banner" style="display: none;">
+        <div class="container">
+            <span class="broadcast-icon">📢</span>
+            <span id="broadcast-message"></span>
+            <button onclick="this.parentElement.parentElement.style.display='none'" class="close-btn">&times;</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="dashboard-grid mb-4">
+            <!-- Card 1: SOS -->
+            <div class="tactical-feature-card span-3 navigator-card" id="sos-tactical-card" onclick="sendSOS()"
+                style="position: relative; overflow: hidden;">
+                <div class="tactical-overlay tactical-scanline"></div>
+                <div class="prism-glare"></div>
+                <div class="tactical-inner">
+                    <img src="{{ url_for('static', filename='sos_icon.png') }}" alt="SOS" class="tactical-icon"
+                        style="width: 50px; height: 50px; margin-bottom: 0.5rem;">
+                    <h3>Instant SOS</h3>
+                </div>
+            </div>
+
+            <!-- Card 2: Tracking -->
+            <div class="tactical-feature-card span-3 navigator-card" id="track-btn"
+                style="position: relative; overflow: hidden;">
+                <div class="tactical-overlay tactical-scanline"></div>
+                <div class="prism-glare"></div>
+                <div class="tactical-inner">
+                    <img src="{{ url_for('static', filename='tracking_icon.png') }}" alt="Tracking"
+                        class="tactical-icon" style="width: 50px; height: 50px; margin-bottom: 0.5rem;">
+                    <h3 style="font-size: 1.1rem;">Tracking</h3>
+                    <p id="track-status" style="font-size: 0.8rem;">Inactive</p>
+                </div>
+            </div>
+
+            <div class="tactical-feature-card span-3 navigator-card" onclick="openTacticalHUD()"
+                style="position: relative; overflow: hidden;">
+                <div class="tactical-overlay tactical-scanline"
+                    style="background: linear-gradient(rgba(0, 255, 136, 0.1) 50%, transparent 50%);"></div>
+                <div class="prism-glare"></div>
+                <div class="tactical-inner">
+                    <div style="font-size: 2.5rem;">🛰️</div>
+                    <h3 style="font-size: 1.1rem; color: var(--squad-neon);">Tactical Intel</h3>
+                </div>
+            </div>
+
+            <!-- Card 4: Night Risk Logic -->
+            <div class="tactical-feature-card span-3 navigator-card" style="position: relative; overflow: hidden;">
+                <div class="tactical-overlay tactical-scanline"></div>
+                <div class="prism-glare"></div>
+                <div class="tactical-inner">
+                    <img src="{{ url_for('static', filename='night_icon.png') }}" alt="Night Risk" class="tactical-icon"
+                        style="width: 50px; height: 50px; margin-bottom: 0.5rem;">
+                    <h3>Night Risk</h3>
+                    <div class="risk-info">
+                        <span id="risk-level">Checking...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="dashboard-grid mt-2">
+            <!-- Squad Sync Card -->
+            <div class="card span-6 squad-panel">
+                <div class="card-scanline"></div>
+                <div class="flex justify-between align-center mb-1">
+                    <h3 style="color: var(--squad-neon);">🫂 Squad Sync</h3>
+                    <div class="tactical-status-pill">GRID: OPTIMAL</div>
+                </div>
+
+                <div id="no-squad-view">
+                    <p class="text-muted mb-2">Create a temporary safety group with friends.</p>
+                    <div class="flex gap-1">
+                        <button onclick="createSquad()" class="btn btn-primary flex-1">Create Squad</button>
+                        <button onclick="showJoinSquadModal()" class="btn btn-outline flex-1">Join Code</button>
+                    </div>
+                </div>
+
+                <div id="active-squad-view" style="display: none;">
+                    <div class="invite-code-container mb-2 p-1"
+                        style="background: rgba(0,255,136,0.1); border-radius: 8px; text-align: center; border: 1px dashed var(--squad-neon);">
+                        <span style="font-size: 0.8rem; opacity: 0.7;">INVITE CODE:</span>
+                        <strong id="display-invite-code"
+                            style="font-size: 1.2rem; margin-left: 0.5rem; color: var(--squad-neon);"></strong>
+                    </div>
+                    <div id="squad-members-list" class="squad-members-container"
+                        style="max-height: 200px; overflow-y: auto;">
+                        <!-- Squad members will appear here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guardian Pulse Card -->
+            <div class="card span-6 pulse-panel">
+                <div class="card-scanline"></div>
+                <div class="flex justify-between align-center mb-1">
+                    <h3 style="color: var(--pulse-neon);">💓 Guardian Pulse</h3>
+                    <div class="tactical-status-pill"
+                        style="border-color: var(--pulse-neon); color: var(--pulse-neon);">OS: ACTIVE</div>
+                </div>
+                <div id="pulse-inactive">
+                    <p class="text-muted mb-2">Automated safety check-ins for high-risk transit.</p>
+                    <div class="form-group mb-1">
+                        <label>Interval</label>
+                        <select id="pulse-interval" class="form-control" style="width: 100%;">
+                            <option value="60">1 Minute (High Risk)</option>
+                            <option value="300" selected>5 Minutes (Standard)</option>
+                            <option value="600">10 Minutes (Safe Corridor)</option>
+                        </select>
+                    </div>
+                    <button onclick="startPulse()" class="btn btn-primary btn-block">Activate Pulse</button>
+                </div>
+
+                <div id="pulse-active" style="display: none; text-align: center;">
+                    <div class="pulse-timer-circle">
+                        <svg class="pulse-timer-svg" width="100" height="100">
+                            <circle class="pulse-timer-path" cx="50" cy="50" r="45"></circle>
+                        </svg>
+                        <div id="pulse-countdown"
+                            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 1.2rem;">
+                            --</div>
+                    </div>
+                    <p id="pulse-status-text" class="mb-2">Pulse Monitor Active</p>
+                    <button id="pulse-confirm-btn" onclick="confirmPulse()" class="pulse-confirm-btn"
+                        style="display: none;">CONFIRM SAFETY</button>
+                </div>
+            </div>
+
+            <!-- SafeRoute Navigator Card (PRO INTEGRATION) -->
+            <div class="card span-12 tactical-panel navigator-card" onclick="window.location.href='/map'"
+                style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), transparent); border: 1px solid rgba(59, 130, 246, 0.3); cursor: pointer; position: relative; overflow: hidden;">
+                <div class="card-scanline"></div>
+                <div class="prism-glare"></div>
+                <div class="flex justify-between align-center p-2" style="position: relative; z-index: 2;">
+                    <div class="flex align-center gap-2">
+                        <div class="tactical-icon-wrap"
+                            style="background: rgba(59, 130, 246, 0.2); color: #3b82f6; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <span style="font-size: 1.5rem;">📍</span>
+                        </div>
+                        <div>
+                            <h2
+                                style="color: #3b82f6; font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; margin: 0;">
+                                SafeRoute <span style="color: white; opacity: 0.9;">Navigator</span></h2>
+                            <p class="text-muted" style="font-size: 0.9rem; margin: 0;">Multi-factor tactical routing &
+                                real-time hotspot detection.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-1 align-center">
+                        <div class="tactical-status-pill"
+                            style="border: 1px solid #3b82f6; color: #3b82f6; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">
+                            LIVE_GRID: ACTIVE</div>
+                        <div class="btn btn-primary"
+                            style="background: #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); border: none; padding: 0.5rem 1rem; border-radius: 8px; color: white;">
+                            Open Navigator</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card span-6">
+                <h3>📢 Community Incident Feed</h3>
+                <div class="mt-2">
+                    <form onsubmit="reportIncident(event)" class="mb-2">
+                        <div class="form-group">
+                            <select name="type" required
+                                style="width: 100%; margin-bottom: 0.5rem; padding: 0.75rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--border);">
+                                <option value="" disabled selected>Incident Type</option>
+                                <option value="Suspicious Activity">Suspicious Activity</option>
+                                <option value="Broken Infrastructure">Broken Infrastructure</option>
+                                <option value="Theft">Theft</option>
+                                <option value="Harassment">Harassment</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <textarea name="description" placeholder="Short description..." required
+                                style="width: 100%; min-height: 80px; margin-bottom: 0.5rem; padding: 0.75rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--border); font-family: inherit; resize: vertical;"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Report Concern</button>
+                    </form>
+                    <hr class="mb-2" style="border: 0; border-top: 1px solid var(--border);">
+                    <div id="incident-feed" class="incident-feed-container"
+                        style="max-height: 300px; overflow-y: auto; padding-right: 5px;">
+                        <p class="text-muted text-center">No reports yet.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card span-6">
+                <h3>📞 Emergency Contacts</h3>
+                <div class="mt-2">
+                    <ul id="contact-list" class="user-list mb-2"
+                        style="max-height: 200px; overflow-y: auto; padding-right: 5px;">
+                        <li class="text-muted">No contacts added.</li>
+                    </ul>
+                    <hr class="mb-2" style="border: 0; border-top: 1px solid var(--border);">
+                    <form onsubmit="addContact(event)">
+                        <div class="form-group">
+                            <input type="text" name="name" placeholder="Name" required class="form-control"
+                                style="width: 100%; margin-bottom: 0.5rem;">
+                        </div>
+                        <div class="form-group">
+                            <input type="text" name="phone" placeholder="Phone Number" required class="form-control"
+                                style="width: 100%; margin-bottom: 0.5rem;">
+                        </div>
+                        <button type="submit" class="btn btn-outline btn-block" style="font-size: 0.9rem;">Add
+                            Contact</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card" style="grid-column: span 12;">
+                <h3>📜 My Alert History</h3>
+                <table class="data-table" id="my-alerts-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Coordinates</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">No SOS alerts sent yet.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tactical HUD Overlay (Hidden by default) -->
+        <div id="tactical-hud" class="tactical-hud">
+            <div class="hud-frame"></div>
+            <div class="hud-corner hud-tl"></div>
+            <div class="hud-corner hud-tr"></div>
+            <div class="hud-corner hud-bl"></div>
+            <div class="hud-corner hud-br"></div>
+
+            <div class="hud-data-panel hud-left">
+                <h6 class="mb-1" style="color: var(--squad-neon); font-size: 0.7rem; letter-spacing: 2px;">SQUAD_INTEL
+                </h6>
+                <div id="hud-member-list" class="mb-2"></div>
+
+                <h6 class="mb-1" style="color: var(--squad-neon); font-size: 0.7rem; letter-spacing: 2px;">VITAL_METRICS
+                </h6>
+                <div class="flex flex-column gap-1">
+                    <div class="flex justify-between align-center" style="font-size: 0.7rem;">
+                        <span>SIGNAL</span>
+                        <span id="hud-dash-signal" class="tactical-status-pill">98%</span>
+                    </div>
+                    <div class="flex justify-between align-center" style="font-size: 0.7rem;">
+                        <span>GPS_LOCK</span>
+                        <span id="hud-dash-gps" class="tactical-status-pill">8_SV</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hud-data-panel hud-right">
+                <h6 class="mb-1" style="color: var(--pulse-neon); font-size: 0.7rem; letter-spacing: 2px;">ENVIRO_SCAN
+                </h6>
+                <div class="flex flex-column gap-1 mb-2">
+                    <div class="flex justify-between align-center" style="font-size: 0.7rem;">
+                        <span>LUX_LEVEL</span>
+                        <span id="hud-dash-lighting" class="tactical-status-pill">240lx</span>
+                    </div>
+                    <div class="flex justify-between align-center" style="font-size: 0.7rem;">
+                        <span>COORD_REF</span>
+                        <span id="hud-dash-coords" class="tactical-status-pill">78.96, 20.59</span>
+                    </div>
+                </div>
+
+                <h6 class="mb-1" style="color: var(--pulse-neon); font-size: 0.7rem; letter-spacing: 2px;">TACTICAL_LOGS
+                </h6>
+                <div id="hud-vital-logs"
+                    style="font-family: monospace; font-size: 0.7rem; opacity: 0.8; line-height: 1.2;">
+                    > SYSTEM COLD BOOT...<br>
+                    > ENCRYPTED LINK ESTABLISHED...<br>
+                    > SCANNING LOCAL GRID...
+                </div>
+            </div>
+
+            <div
+                style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: auto;">
+                <div id="sos-active-warning"
+                    style="background: rgba(239, 68, 68, 0.9); color: white; padding: 1rem 2rem; border-radius: 8px; animation: pulse-border 1s infinite; display: none;">
+                    <h2 style="margin: 0;">SQUAD SOS ACTIVE</h2>
+                    <p id="sos-originator-text" style="margin: 5px 0 0 0;">Member in Distress</p>
+                </div>
+                <button onclick="closeTacticalHUD()" class="btn btn-outline mt-2"
+                    style="background: rgba(0,0,0,0.5);">CLOSE HUD</button>
+            </div>
+        </div>
+
+        <!-- AI Triage Results Modal -->
+        <div id="ai-triage-modal" class="triage-modal" style="display: none;">
+            <div class="modal-content" style="border-color: var(--primary);">
+                <div class="flex justify-between align-center mb-2">
+                    <h3 id="triage-title">🤖 AI SAFETY TRIAGE</h3>
+                    <button onclick="closeTriageModal()"
+                        style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+                </div>
+                <div id="triage-loading" style="text-align: center; padding: 2rem;">
+                    <div class="spinner mb-1"></div>
+                    <p class="text-muted">Analyzing situation telemetry...</p>
+                </div>
+                <div id="triage-results" style="display: none;">
+                    <div class="flex justify-between align-center mb-2">
+                        <span id="triage-priority" class="status-pill status-high">CRITICAL</span>
+                        <span id="triage-category" class="text-muted" style="font-size: 0.8rem;">SECURITY_INTEL</span>
+                    </div>
+                    <div class="instruction-box mb-2" id="triage-instructions"
+                        style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; border-left: 4px solid var(--primary); font-size: 1.1rem; line-height: 1.6;">
+                    </div>
+                    <div class="flex gap-1">
+                        <button onclick="sendSOS()" class="btn btn-danger flex-1">TRIGGER SOS</button>
+                        <button onclick="closeTriageModal()" class="btn btn-outline flex-1">ACKNOWLEDGE</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+
+</html>

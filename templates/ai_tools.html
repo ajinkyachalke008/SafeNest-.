@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeNest - AI Tools</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=1771740002">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+
+<body class="dashboard-page">
+    <div class="cosmos-container" style="animation: none; opacity: 0.3;"></div>
+
+    <nav class="navbar">
+        <a href="/" class="brand">🛡️ SafeNest</a>
+        <div class="nav-links">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/ai-tools" class="active">AI Tools</a>
+            <a href="/logout" class="btn-logout">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <header class="mb-3">
+            <h1 class="gradient-text">Tactical AI Safety Suite</h1>
+            <p class="text-muted">High-precision algorithmic tools for safety protocol engineering and professional
+                reporting.</p>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- Tool 1: Prompt Generator -->
+            <div class="card tactical-feature-card">
+                <div class="card-header-flex">
+                    <div class="icon-wrap" style="width: 45px; height: 45px;"><img src="/static/sos_icon.png"
+                            class="feature-icon" style="filter: hue-rotate(280deg);"></div>
+                    <h3>Safety Prompt Engineering</h3>
+                </div>
+                <p class="text-muted mt-1">Generate high-fidelity AI directives for specialized safety tasks and risk
+                    analysis.</p>
+                <div class="mt-2">
+                    <textarea id="prompt-task" class="form-control"
+                        placeholder="Define safety objective... (e.g., 'Conduct a night-time risk analysis for Tech Block B')"></textarea>
+                    <button onclick="aiTools.generatePrompt()" class="btn btn-primary btn-block mt-1">Initialize
+                        Generator</button>
+                </div>
+                <div id="prompt-result" class="mt-2" style="display: none;">
+                    <label class="text-xs uppercase tracked mb-1">Generated Directives:</label>
+                    <div id="prompt-output" class="ai-output-box"></div>
+                    <button onclick="aiTools.copyToClipboard('prompt-output')"
+                        class="btn btn-outline btn-block mt-1">Copy to Clipboard</button>
+                </div>
+            </div>
+
+            <!-- Tool 2: Grammar Editor -->
+            <div class="card tactical-feature-card">
+                <div class="card-header-flex">
+                    <div class="icon-wrap" style="width: 45px; height: 45px;"><img src="/static/tracking_icon.png"
+                            class="feature-icon" style="filter: hue-rotate(150deg);"></div>
+                    <h3>Professional Logic Refiner</h3>
+                </div>
+                <p class="text-muted mt-1">Transform field observations into objective, professional safety
+                    documentation.</p>
+                <div class="mt-2">
+                    <textarea id="grammar-text" class="form-control"
+                        placeholder="Enter raw observations here..."></textarea>
+                    <button onclick="aiTools.correctGrammar()" class="btn btn-primary btn-block mt-1">Analyze &
+                        Refine</button>
+                </div>
+                <div id="grammar-result" class="mt-2" style="display: none;">
+                    <div class="result-box">
+                        <label class="text-xs uppercase tracked">Refined Observation:</label>
+                        <p id="grammar-output" class="p-1 crystal-subcard rounded"></p>
+                    </div>
+                    <div class="result-box mt-1">
+                        <label class="text-xs uppercase tracked">Refinement Rationale:</label>
+                        <p id="grammar-explanation" class="text-muted italic small"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .ai-output-box {
+            background: rgba(168, 85, 247, 0.05);
+            padding: 1.25rem;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            color: #d8b4fe;
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .crystal-subcard {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .text-xs {
+            font-size: 0.75rem;
+        }
+
+        .tracked {
+            letter-spacing: 0.05em;
+        }
+
+        .small {
+            font-size: 0.85rem;
+        }
+
+        .card-header-flex {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, white 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 1.25rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            color: white;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 140px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 15px rgba(138, 43, 226, 0.2);
+        }
+
+        .active {
+            color: white !important;
+            text-shadow: 0 0 15px var(--primary);
+            border-bottom: 2px solid var(--primary);
+        }
+    </style>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script>
+        // Local Tool Logic
+        const aiTools = {
+            async generatePrompt() {
+                const task = document.getElementById('prompt-task').value;
+                if (!task) return alert("Please specify a task!");
+
+                const btn = event.target;
+                btn.textContent = "Engineering...";
+                btn.disabled = true;
+
+                try {
+                    const res = await fetch('/api/ai/generate-prompt', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ task_description: task })
+                    });
+                    const data = await res.json();
+
+                    document.getElementById('prompt-output').textContent = data.generated_prompt;
+                    document.getElementById('prompt-result').style.display = 'block';
+                } catch (e) {
+                    alert("Error generating prompt.");
+                } finally {
+                    btn.textContent = "Generate Prompt";
+                    btn.disabled = false;
+                }
+            },
+
+            async correctGrammar() {
+                const text = document.getElementById('grammar-text').value;
+                if (!text) return alert("Please enter some text!");
+
+                const btn = event.target;
+                btn.textContent = "Correcting...";
+                btn.disabled = true;
+
+                try {
+                    const res = await fetch('/api/ai/correct-grammar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text })
+                    });
+                    const data = await res.json();
+
+                    document.getElementById('grammar-output').textContent = data.corrected;
+                    document.getElementById('grammar-explanation').textContent = data.explanation;
+                    document.getElementById('grammar-result').style.display = 'block';
+                } catch (e) {
+                    alert("Error in grammar correction.");
+                } finally {
+                    btn.textContent = "Correct & Explain";
+                    btn.disabled = false;
+                }
+            },
+
+            copyToClipboard(id) {
+                const text = document.getElementById(id).textContent;
+                navigator.clipboard.writeText(text);
+                alert("Prompt copied to clipboard!");
+            }
+        };
+    </script>
+</body>
+
+</html>

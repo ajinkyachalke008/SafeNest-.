@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeRoute Navigator</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <style>
+        /* ============================================================
+           SAFEROUTE NAVIGATOR — PRO THEME
+           ============================================================ */
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a1f35;
+            --bg-card-hover: #232945;
+            --accent-red: #ef4444;
+            --accent-red-glow: rgba(239, 68, 68, 0.3);
+            --accent-blue: #3b82f6;
+            --accent-blue-glow: rgba(59, 130, 246, 0.3);
+            --accent-green: #22c55e;
+            --accent-green-glow: rgba(34, 197, 94, 0.3);
+            --accent-yellow: #f59e0b;
+            --accent-orange: #f97316;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --glass-bg: rgba(17, 24, 39, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* ---- MAP CONTAINER ---- */
+        #map {
+            width: 100%;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        /* ---- TOP BAR ---- */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .top-bar-logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-blue), #8b5cf6);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .top-bar-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .top-bar-title span {
+            color: var(--accent-blue);
+        }
+
+        .top-bar-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+
+            0%,
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 0 0 var(--accent-green-glow);
+            }
+
+            50% {
+                opacity: 0.7;
+                box-shadow: 0 0 0 6px transparent;
+            }
+        }
+
+        /* ---- HOTSPOT PULSE ANIMATIONS ---- */
+        @keyframes hotspot-pulse-red {
+            0% {
+                fill-opacity: 0.25;
+                stroke-width: 2;
+            }
+
+            50% {
+                fill-opacity: 0.45;
+                stroke-width: 4;
+                stroke: #ff0000;
+            }
+
+            100% {
+                fill-opacity: 0.25;
+                stroke-width: 2;
+            }
+        }
+
+        .hotspot-pulse-heavy {
+            animation: hotspot-pulse-red 2s infinite ease-in-out;
+        }
+
+        .hotspot-pulse-light {
+            opacity: 0.8;
+        }
+
+        /* ---- SIDEBAR PANEL ---- */
+        .sidebar {
+            position: fixed;
+            top: 65px;
+            left: 16px;
+            bottom: 16px;
+            width: 340px;
+            z-index: 1000;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            overflow-y: auto;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-360px);
+            opacity: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        /* ---- FILTER TOGGLES ---- */
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-toggle:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .filter-toggle.active {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .filter-toggle-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .filter-icon.red {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+        }
+
+        .filter-icon.blue {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent-blue);
+        }
+
+        .filter-icon.green {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--accent-green);
+        }
+
+        .filter-icon.yellow {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-yellow);
+        }
+
+        .filter-icon.orange {
+            background: rgba(249, 115, 22, 0.15);
+            color: var(--accent-orange);
+        }
+
+        .filter-label {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .filter-count {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .toggle-switch {
+            width: 36px;
+            height: 20px;
+            background: var(--bg-primary);
+            border-radius: 10px;
+            position: relative;
+            transition: background 0.3s;
+        }
+
+        .filter-toggle.active .toggle-switch {
+            background: var(--accent-blue);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .filter-toggle.active .toggle-switch::after {
+            transform: translateX(16px);
+        }
+
+        /* ---- LEGEND SECTION ---- */
+        .sidebar-section {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-section h4 {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 14px;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .legend-line {
+            width: 24px;
+            height: 4px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        /* ---- STATS CARDS ---- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-value.red {
+            color: var(--accent-red);
+        }
+
+        .stat-value.blue {
+            color: var(--accent-blue);
+        }
+
+        .stat-value.green {
+            color: var(--accent-green);
+        }
+
+        .stat-value.yellow {
+            color: var(--accent-yellow);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ---- INCIDENT REPORT PANEL ---- */
+        .report-panel {
+            padding: 20px;
+        }
+
+        .report-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent-red), #dc2626);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .report-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(239, 68, 68, 0.4);
+        }
+
+        /* ---- REPORT MODAL ---- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 480px;
+            max-height: 85vh;
+            overflow-y: auto;
+            transform: translateY(20px) scale(0.95);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-header {
+            padding: 24px 24px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--accent-red);
+            color: white;
+            border-color: var(--accent-red);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .form-group select,
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .severity-selector {
+            display: flex;
+            gap: 8px;
+        }
+
+        .severity-btn {
+            flex: 1;
+            padding: 10px 4px;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .severity-btn.selected {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--text-primary);
+        }
+
+        .severity-btn .severity-num {
+            font-size: 18px;
+            font-weight: 700;
+            display: block;
+        }
+
+        .severity-btn .severity-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .location-notice {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 10px;
+            font-size: 12px;
+            color: var(--accent-blue);
+            margin-bottom: 18px;
+        }
+
+        /* ---- FLOATING CONTROLS ---- */
+        .map-controls {
+            position: fixed;
+            right: 16px;
+            top: 80px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .map-ctrl-btn {
+            width: 44px;
+            height: 44px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .map-ctrl-btn:hover {
+            background: var(--bg-card-hover);
+            transform: scale(1.05);
+        }
+
+        .map-ctrl-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        /* ---- FLOATING SOS BUTTON ---- */
+        .sos-float {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+        }
+
+        .sos-btn {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 30px rgba(239, 68, 68, 0.5);
+            animation: sos-pulse 3s infinite;
+            transition: transform 0.2s;
+        }
+
+        .sos-btn:hover {
+            transform: scale(1.1);
+        }
+
+        @keyframes sos-pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 4px 30px rgba(239, 68, 68, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 4px 50px rgba(239, 68, 68, 0.8), 0 0 0 15px rgba(239, 68, 68, 0.1);
+            }
+        }
+
+        /* ---- TOGGLE SIDEBAR BUTTON (mobile) ---- */
+        .sidebar-toggle {
+            position: fixed;
+            bottom: 24px;
+            left: 24px;
+            z-index: 1000;
+            width: 48px;
+            height: 48px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            color: var(--text-primary);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .sidebar-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        /* ---- WALKING MODE BANNER ---- */
+        .walk-mode-banner {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--accent-green);
+            border-radius: 16px;
+            padding: 12px 24px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 30px rgba(34, 197, 94, 0.2);
+        }
+
+        .walk-mode-banner.active {
+            display: flex;
+        }
+
+        .walk-mode-banner i {
+            color: var(--accent-green);
+            font-size: 20px;
+        }
+
+        .walk-mode-info {
+            font-size: 13px;
+        }
+
+        .walk-mode-info .walk-title {
+            font-weight: 600;
+            color: var(--accent-green);
+        }
+
+        .walk-mode-stop {
+            padding: 6px 14px;
+            background: var(--accent-red);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* ---- INFO POPUP STYLING ---- */
+        .leaflet-popup-content-wrapper {
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border-radius: 14px !important;
+            border: 1px solid var(--glass-border) !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        .leaflet-popup-tip {
+            background: var(--bg-secondary) !important;
+            border: 1px solid var(--glass-border) !important;
+        }
+
+        .popup-content {
+            padding: 4px;
+        }
+
+        .popup-content h4 {
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        .popup-content p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .popup-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .popup-badge.danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+        }
+
+        .popup-badge.warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent-yellow);
+        }
+
+        .popup-badge.safe {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--accent-green);
+        }
+
+        /* ---- LOADING STATE ---- */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-primary);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            transition: opacity 0.5s;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* ---- TOAST NOTIFICATIONS ---- */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            padding: 12px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: toast-in 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            max-width: 320px;
+        }
+
+        .toast.success {
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .toast.error {
+            border-left: 3px solid var(--accent-red);
+        }
+
+        .toast.info {
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        @keyframes toast-in {
+            from {
+                transform: translateX(100px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* ---- RESPONSIVE ---- */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: calc(100% - 32px);
+                bottom: auto;
+                max-height: 50vh;
+            }
+
+            .sidebar.collapsed {
+                transform: translateY(-120%);
+            }
+
+            .top-bar-status {
+                display: none;
+            }
+        }
+
+        /* ---- SCROLLBAR ---- */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- LOADING SCREEN -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading SafeRoute Navigator...</div>
+    </div>
+
+    <!-- TOP BAR -->
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <div class="top-bar-logo">
+                <i class="fas fa-route"></i>
+            </div>
+            <div class="top-bar-title">Safe<span>Route</span> Navigator</div>
+        </div>
+        <div class="top-bar-status">
+            <div class="status-dot"></div>
+            <span>Live Data • Updated <span id="lastUpdate">just now</span></span>
+        </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+        <!-- FILTERS -->
+        <div class="sidebar-header">
+            <h3>Map Layers</h3>
+            <div class="filter-group">
+                <div class="filter-toggle active" data-layer="hotspots" onclick="toggleLayer(this, 'hotspots')">
+                    <div class="filter-toggle-left">
+                        <div class="filter-icon red"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div>
+                            <div class="filter-label">Incident Hotspots</div>
+                            <div class="filter-count" id="hotspotCount">Loading...</div>
+                        </div>
+                    </div>
+                    <div class="toggle-switch"></div>
+                </div>
+
+                <div class="filter-toggle active" data-layer="corridors" onclick="toggleLayer(this, 'corridors')">
+                    <div class="filter-toggle-left">
+                        <div class="filter-icon blue"><i class="fas fa-shield-halved"></i></div>
+                        <div>
+                            <div class="filter-label">Safe Corridors</div>
+                            <div class="filter-count" id="corridorCount">Loading...</div>
+                        </div>
+                    </div>
+                    <div class="toggle-switch"></div>
+                </div>
+
+                <div class="filter-toggle active" data-layer="heatmap" onclick="toggleLayer(this, 'heatmap')">
+                    <div class="filter-toggle-left">
+                        <div class="filter-icon orange"><i class="fas fa-fire"></i></div>
+                        <div>
+                            <div class="filter-label">Density Heatmap</div>
+                            <div class="filter-count">Incident concentration</div>
+                        </div>
+                    </div>
+                    <div class="toggle-switch"></div>
+                </div>
+
+                <div class="filter-toggle" data-layer="ratings" onclick="toggleLayer(this, 'ratings')">
+                    <div class="filter-toggle-left">
+                        <div class="filter-icon green"><i class="fas fa-star"></i></div>
+                        <div>
+                            <div class="filter-label">Safety Ratings</div>
+                            <div class="filter-count">Community ratings</div>
+                        </div>
+                    </div>
+                    <div class="toggle-switch"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="sidebar-section">
+            <h4>Campus Safety Overview</h4>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value red" id="statIncidents">-</div>
+                    <div class="stat-label">Active Hotspots</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value blue" id="statCorridors">-</div>
+                    <div class="stat-label">Safe Routes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value green" id="statPatrolled">-</div>
+                    <div class="stat-label">Patrolled Now</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value yellow" id="statSeverity">-</div>
+                    <div class="stat-label">Avg Severity</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LEGEND -->
+        <div class="sidebar-section">
+            <h4>Legend</h4>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-dot"
+                        style="background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red-glow);"></div>
+                    <span>High Severity Zone (4-5)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: var(--accent-orange);"></div>
+                    <span>Medium Severity Zone (2-3)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: var(--accent-yellow);"></div>
+                    <span>Low Severity Zone (1)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line"
+                        style="background: var(--accent-blue); box-shadow: 0 0 8px var(--accent-blue-glow);"></div>
+                    <span>Safe Corridor (Patrolled)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: var(--accent-green);"></div>
+                    <span>Safe Corridor (Well-Lit)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot"
+                        style="background: var(--accent-blue); width: 14px; height: 14px; border: 3px solid white;">
+                    </div>
+                    <span>Your Location</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TIME FILTER -->
+        <div class="sidebar-section">
+            <h4>Time Range</h4>
+            <div class="filter-group">
+                <select id="timeRange" onchange="refreshData()"
+                    style="width:100%; padding:10px 14px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; color:var(--text-primary); font-size:13px;">
+                    <option value="7">Last 7 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="180">Last 6 months</option>
+                    <option value="365">Last year</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- REPORT INCIDENT -->
+        <div class="report-panel">
+            <button class="report-btn" onclick="openReportModal()">
+                <i class="fas fa-plus-circle"></i>
+                Report an Incident
+            </button>
+        </div>
+    </div>
+
+    <!-- MAP CONTROLS -->
+    <div class="map-controls">
+        <button class="map-ctrl-btn" onclick="locateUser()" title="My Location">
+            <i class="fas fa-crosshairs"></i>
+        </button>
+        <button class="map-ctrl-btn" onclick="toggleDarkMode()" title="Toggle Dark Mode" id="darkModeBtn">
+            <i class="fas fa-moon"></i>
+        </button>
+        <button class="map-ctrl-btn" onclick="toggleWalkMode()" title="Walk With Me Mode" id="walkModeBtn">
+            <i class="fas fa-person-walking"></i>
+        </button>
+        <button class="map-ctrl-btn" onclick="refreshData()" title="Refresh Data">
+            <i class="fas fa-refresh"></i>
+        </button>
+    </div>
+
+    <!-- SIDEBAR TOGGLE -->
+    <button class="sidebar-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-layer-group"></i>
+    </button>
+
+    <!-- SOS BUTTON -->
+    <div class="sos-float">
+        <button class="sos-btn" onclick="window.location.href='/red-desk'" title="Emergency Contacts">
+            SOS
+        </button>
+    </div>
+
+    <!-- WALK MODE BANNER -->
+    <div class="walk-mode-banner" id="walkBanner">
+        <i class="fas fa-person-walking"></i>
+        <div class="walk-mode-info">
+            <div class="walk-title">Walk With Me Active</div>
+            <div>Tracking your position in real-time</div>
+        </div>
+        <button class="walk-mode-stop" onclick="toggleWalkMode()">Stop</button>
+    </div>
+
+    <!-- REPORT MODAL -->
+    <div class="modal-overlay" id="reportModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Report Incident</h2>
+                <button class="modal-close" onclick="closeReportModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="location-notice" id="reportLocationNotice">
+                    <i class="fas fa-map-pin"></i>
+                    <span>Click on the map to set incident location, or we'll use your current location.</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Incident Type</label>
+                    <select id="reportType">
+                        <option value="">Select type...</option>
+                        <option value="theft">Theft / Robbery</option>
+                        <option value="harassment">Harassment</option>
+                        <option value="assault">Assault</option>
+                        <option value="vandalism">Vandalism</option>
+                        <option value="suspicious_activity">Suspicious Activity</option>
+                        <option value="poor_lighting">Poor Lighting / Dark Area</option>
+                        <option value="unsafe_area">Generally Unsafe Area</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Severity Level</label>
+                    <div class="severity-selector">
+                        <div class="severity-btn" onclick="selectSeverity(this, 1)">
+                            <span class="severity-num">1</span>
+                            <span class="severity-label">Low</span>
+                        </div>
+                        <div class="severity-btn" onclick="selectSeverity(this, 2)">
+                            <span class="severity-num">2</span>
+                            <span class="severity-label">Minor</span>
+                        </div>
+                        <div class="severity-btn selected" onclick="selectSeverity(this, 3)">
+                            <span class="severity-num">3</span>
+                            <span class="severity-label">Moderate</span>
+                        </div>
+                        <div class="severity-btn" onclick="selectSeverity(this, 4)">
+                            <span class="severity-num">4</span>
+                            <span class="severity-label">Severe</span>
+                        </div>
+                        <div class="severity-btn" onclick="selectSeverity(this, 5)">
+                            <span class="severity-num">5</span>
+                            <span class="severity-label">Critical</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Description (optional)</label>
+                    <textarea id="reportDesc"
+                        placeholder="What happened? Any details that could help others stay safe..."></textarea>
+                </div>
+
+                <button class="submit-btn" id="submitReportBtn" onclick="submitIncidentReport()">
+                    <i class="fas fa-paper-plane"></i> Submit Report
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- MAP -->
+    <div id="map"></div>
+
+    <!-- SCRIPTS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script>
+        // ============================================================
+        // SAFEROUTE NAVIGATOR — ENGINE
+        // ============================================================
+
+        // --- Configuration ---
+        const CONFIG = {
+            // Updated to GCEK Campus Coordinates, Karad, Maharashtra
+            campusCenter: [17.3087, 74.1848],
+            defaultZoom: 16,
+            maxZoom: 19,
+            refreshInterval: 120000, // 2 minutes
+            walkModeInterval: 5000,  // 5 seconds
+        };
+
+        // --- Map Tile Layers ---
+        const TILES = {
+            dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap, © CARTO',
+                maxZoom: CONFIG.maxZoom
+            }),
+            light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap, © CARTO',
+                maxZoom: CONFIG.maxZoom
+            }),
+            satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© Esri',
+                maxZoom: CONFIG.maxZoom
+            })
+        };
+
+        // --- State ---
+        let map;
+        let isDarkMode = true;
+        let isWalkMode = false;
+        let walkModeWatcher = null;
+        let userMarker = null;
+        let userAccuracyCircle = null;
+        let reportClickMarker = null;
+        let selectedSeverity = 3;
+        let reportLocation = null;
+        let activeHotspots = [];
+        let simulationInterval = null;
+
+        // Layer groups
+        let hotspotLayer = L.layerGroup();
+        let corridorLayer = L.layerGroup();
+        let heatmapLayer = null;
+        let ratingsLayer = L.layerGroup();
+
+        let layerVisibility = {
+            hotspots: true,
+            corridors: true,
+            heatmap: true,
+            ratings: false
+        };
+
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
+
+        function initMap() {
+            map = L.map('map', {
+                center: CONFIG.campusCenter,
+                zoom: CONFIG.defaultZoom,
+                zoomControl: false,
+                attributionControl: false
+            });
+
+            // Add zoom control to bottom-right
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map);
+
+            // Default dark tile
+            TILES.dark.addTo(map);
+
+            // Add layer groups
+            hotspotLayer.addTo(map);
+            corridorLayer.addTo(map);
+
+            // Map click handler for reporting
+            map.on('click', function (e) {
+                if (document.getElementById('reportModal').classList.contains('active')) {
+                    setReportLocation(e.latlng.lat, e.latlng.lng);
+                }
+            });
+
+            // Load data
+            refreshData();
+
+            // Auto refresh
+            setInterval(refreshData, CONFIG.refreshInterval);
+
+            // Try to locate user
+            locateUser();
+
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }, 1000);
+        }
+
+        // ============================================================
+        // DATA LOADING
+        // ============================================================
+
+        async function refreshData() {
+            const days = document.getElementById('timeRange').value;
+            await Promise.all([
+                loadHotspots(days),
+                loadCorridors(),
+                loadHeatmap(days),
+                loadRatings()
+            ]);
+            document.getElementById('lastUpdate').textContent = 'just now';
+        }
+
+        async function loadHotspots(days) {
+            try {
+                const res = await fetch(`/api/safety/hotspots?days=${days}`);
+                const data = await res.json();
+
+                if (!data.success) return;
+
+                hotspotLayer.clearLayers();
+                activeHotspots = data.hotspots;
+
+                data.hotspots.forEach(h => {
+                    // Color based on severity
+                    let color, fillColor, className;
+                    if (h.max_severity >= 4) {
+                        color = '#ef4444';
+                        fillColor = 'rgba(239, 68, 68, 0.25)';
+                        className = 'danger';
+                    } else if (h.max_severity >= 2) {
+                        color = '#f97316';
+                        fillColor = 'rgba(249, 115, 22, 0.2)';
+                        className = 'warning';
+                    } else {
+                        color = '#f59e0b';
+                        fillColor = 'rgba(245, 158, 11, 0.15)';
+                        className = 'warning';
+                    }
+
+                    // Pulsing red zone circle
+                    const pulseClass = h.max_severity >= 4 ? 'hotspot-pulse-heavy' : 'hotspot-pulse-light';
+                    const circle = L.circle([h.latitude, h.longitude], {
+                        radius: h.radius,
+                        color: color,
+                        fillColor: fillColor,
+                        fillOpacity: 0.4,
+                        weight: 2,
+                        dashArray: h.max_severity >= 4 ? null : '5, 10',
+                        className: `hotspot-zone severity-${h.max_severity} ${pulseClass}`
+                    });
+
+                    // Popup
+                    const typeLabels = {
+                        theft: '🔓 Theft', harassment: '⚠️ Harassment', assault: '🚨 Assault',
+                        vandalism: '🔨 Vandalism', suspicious_activity: '👁️ Suspicious',
+                        poor_lighting: '💡 Poor Lighting', unsafe_area: '⚠️ Unsafe Area',
+                        general: '📍 General', other: '📍 Other'
+                    };
+
+                    circle.bindPopup(`
+                        <div class="popup-content">
+                            <h4>${typeLabels[h.dominant_type] || h.dominant_type}</h4>
+                            <p><strong>${h.incident_count}</strong> incident(s) in this area</p>
+                            <p>Max severity: <span class="popup-badge ${className}">${h.max_severity}/5</span></p>
+                            <p style="font-size:11px; color:var(--text-muted);">Last report: ${new Date(h.latest_report).toLocaleDateString()}</p>
+                        </div>
+                    `);
+
+                    hotspotLayer.addLayer(circle);
+                });
+
+                // Update stats
+                document.getElementById('hotspotCount').textContent = `${data.hotspots.length} active zones`;
+                document.getElementById('statIncidents').textContent = data.hotspots.length;
+
+                // Average severity
+                if (data.hotspots.length > 0) {
+                    const avgSev = (data.hotspots.reduce((s, h) => s + h.max_severity, 0) / data.hotspots.length).toFixed(1);
+                    document.getElementById('statSeverity').textContent = avgSev;
+                }
+
+            } catch (err) {
+                console.error('Failed to load hotspots:', err);
+            }
+        }
+
+        async function loadCorridors() {
+            try {
+                const res = await fetch('/api/safety/corridors');
+                const data = await res.json();
+
+                if (!data.success) return;
+
+                corridorLayer.clearLayers();
+                let patrolledCount = 0;
+
+                data.corridors.forEach(c => {
+                    if (c.patrolled && c.is_currently_active) patrolledCount++;
+
+                    let color, weight, opacity;
+                    if (c.patrolled && c.is_currently_active) {
+                        color = '#3b82f6';
+                        weight = 5;
+                        opacity = 0.9;
+                    } else if (c.safety_score >= 4) {
+                        color = '#22c55e';
+                        weight = 4;
+                        opacity = 0.7;
+                    } else {
+                        color = '#a3e635';
+                        weight = 3;
+                        opacity = 0.5;
+                    }
+
+                    const polyline = L.polyline(c.coordinates, {
+                        color: color,
+                        weight: weight,
+                        opacity: opacity,
+                        lineJoin: 'round',
+                        lineCap: 'round',
+                        className: 'safe-corridor'
+                    });
+
+                    polyline.bindPopup(`
+                        <div class="popup-content">
+                            <h4>🛡️ ${c.name}</h4>
+                            <p>Safety Score: <span class="popup-badge safe">${c.safety_score}/5</span></p>
+                            <p>Lighting: ${c.lighting}</p>
+                            <p>Patrolled: ${c.patrolled ? '✅ Yes' : '❌ No'}</p>
+                            <p>Active: ${c.active_hours}</p>
+                            <p style="font-size:11px; color:var(--text-muted);">Currently ${c.is_currently_active ? '🟢 Active' : '🔴 Inactive'}</p>
+                        </div>
+                    `);
+
+                    corridorLayer.addLayer(polyline);
+                });
+
+                document.getElementById('corridorCount').textContent = `${data.corridors.length} safe paths`;
+                document.getElementById('statCorridors').textContent = data.corridors.length;
+                document.getElementById('statPatrolled').textContent = patrolledCount;
+
+            } catch (err) {
+                console.error('Failed to load corridors:', err);
+            }
+        }
+
+        async function loadHeatmap(days) {
+            try {
+                const res = await fetch(`/api/safety/heatmap?days=${days}`);
+                const data = await res.json();
+
+                if (!data.success) return;
+
+                // Remove existing heatmap
+                if (heatmapLayer) {
+                    map.removeLayer(heatmapLayer);
+                }
+
+                if (data.points.length > 0) {
+                    heatmapLayer = L.heatLayer(data.points, {
+                        radius: 35,
+                        blur: 25,
+                        maxZoom: CONFIG.maxZoom,
+                        max: 1.0,
+                        gradient: {
+                            0.1: '#22c55e',
+                            0.3: '#f59e0b',
+                            0.5: '#f97316',
+                            0.7: '#ef4444',
+                            1.0: '#dc2626'
+                        }
+                    });
+
+                    if (layerVisibility.heatmap) {
+                        heatmapLayer.addTo(map);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to load heatmap:', err);
+            }
+        }
+
+        async function loadRatings() {
+            try {
+                const res = await fetch('/api/safety/ratings');
+                const data = await res.json();
+
+                if (!data.success) return;
+
+                ratingsLayer.clearLayers();
+
+                data.ratings.forEach(r => {
+                    const iconColor = r.category === 'safe' ? '#22c55e' : (r.category === 'unsafe' ? '#ef4444' : '#f59e0b');
+                    const ratingIcon = L.divIcon({
+                        className: 'rating-marker',
+                        html: `<div style="
+                            width: 24px; height: 24px;
+                            background: ${iconColor};
+                            border: 2px solid white;
+                            border-radius: 50%;
+                            display: flex; align-items: center; justify-content: center;
+                            color: white; font-weight: bold; font-size: 10px;
+                            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+                        ">${r.rating.toFixed(1)}</div>`,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    });
+
+                    const marker = L.marker([r.latitude, r.longitude], { icon: ratingIcon });
+                    marker.bindPopup(`
+                        <div class="popup-content">
+                            <h4>⭐ Community Rating</h4>
+                            <p><strong>Score: ${r.rating.toFixed(1)}/5.0</strong></p>
+                            <p>"${r.comment}"</p>
+                        </div>
+                    `);
+
+                    ratingsLayer.addLayer(marker);
+                });
+            } catch (err) {
+                console.error('Failed to load ratings:', err);
+            }
+        }
+
+        // ============================================================
+        // LAYER CONTROLS
+        // ============================================================
+
+        function toggleLayer(el, layerName) {
+            el.classList.toggle('active');
+            layerVisibility[layerName] = el.classList.contains('active');
+
+            switch (layerName) {
+                case 'hotspots':
+                    layerVisibility[layerName] ? hotspotLayer.addTo(map) : map.removeLayer(hotspotLayer);
+                    break;
+                case 'corridors':
+                    layerVisibility[layerName] ? corridorLayer.addTo(map) : map.removeLayer(corridorLayer);
+                    break;
+                case 'heatmap':
+                    if (heatmapLayer) {
+                        layerVisibility[layerName] ? heatmapLayer.addTo(map) : map.removeLayer(heatmapLayer);
+                    }
+                    break;
+                case 'ratings':
+                    layerVisibility[layerName] ? ratingsLayer.addTo(map) : map.removeLayer(ratingsLayer);
+                    break;
+            }
+        }
+
+        // ============================================================
+        // USER LOCATION
+        // ============================================================
+
+        function locateUser() {
+            if (!navigator.geolocation) {
+                showToast('Geolocation not supported by your browser', 'error');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    let lat = pos.coords.latitude;
+                    let lng = pos.coords.longitude;
+                    const accuracy = pos.coords.accuracy;
+
+                    // MVP Fix: Desktop IP-based geolocation is often inaccurate in India.
+                    // If the user's reported location is > 50km from Karad, force fallback to campus.
+                    const distToCampus = getDistance(lat, lng, CONFIG.campusCenter[0], CONFIG.campusCenter[1]);
+                    if (distToCampus > 50000) {
+                        console.warn(`Location is ${Math.round(distToCampus / 1000)}km from campus. Assuming IP error and defaulting to GCEK.`);
+                        showToast('Exact location unavailable. Defaulting to GCEK Campus.', 'info');
+                        lat = CONFIG.campusCenter[0];
+                        lng = CONFIG.campusCenter[1];
+                    } else {
+                        showToast('Location found', 'success');
+                    }
+
+                    // Remove old marker
+                    if (userMarker) map.removeLayer(userMarker);
+                    if (userAccuracyCircle) map.removeLayer(userAccuracyCircle);
+
+                    // Create user marker
+                    const userIcon = L.divIcon({
+                        className: distToCampus > 50000 ? 'user-location-marker fallback' : 'user-location-marker',
+                        html: `<div style="
+                            width: 20px; height: 20px;
+                            background: ${distToCampus > 50000 ? '#9ca3af' : '#3b82f6'};
+                            border: 3px solid white;
+                            border-radius: 50%;
+                            box-shadow: 0 0 15px rgba(${distToCampus > 50000 ? '156,163,175' : '59,130,246'},0.6);
+                        "></div>`,
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    });
+
+                    userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
+                    userMarker.bindPopup(`<div class="popup-content"><h4>${distToCampus > 50000 ? '📍 Default Campus Location' : '📍 You are here'}</h4></div>`);
+
+                    // Accuracy circle
+                    if (distToCampus <= 50000) {
+                        userAccuracyCircle = L.circle([lat, lng], {
+                            radius: accuracy,
+                            color: '#3b82f6',
+                            fillColor: 'rgba(59, 130, 246, 0.1)',
+                            fillOpacity: 0.3,
+                            weight: 1
+                        }).addTo(map);
+                    }
+
+                    map.setView([lat, lng], CONFIG.defaultZoom);
+                    reportLocation = { lat, lng };
+                },
+                (err) => {
+                    console.warn('Geolocation error:', err.message);
+                    showToast('Could not get your exact location. Using campus center.', 'info');
+                    // Fallback to campus center
+                    const fallbackLat = CONFIG.campusCenter[0];
+                    const fallbackLng = CONFIG.campusCenter[1];
+                    reportLocation = { lat: fallbackLat, lng: fallbackLng };
+
+                    // Remove old marker
+                    if (userMarker) map.removeLayer(userMarker);
+                    if (userAccuracyCircle) map.removeLayer(userAccuracyCircle);
+
+                    const fallbackIcon = L.divIcon({
+                        className: 'user-location-marker fallback',
+                        html: `<div style="
+                            width: 20px; height: 20px;
+                            background: #9ca3af;
+                            border: 3px solid white;
+                            border-radius: 50%;
+                            box-shadow: 0 0 15px rgba(156,163,175,0.6);
+                        "></div>`,
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    });
+
+                    userMarker = L.marker([fallbackLat, fallbackLng], { icon: fallbackIcon }).addTo(map);
+                    userMarker.bindPopup('<div class="popup-content"><h4>📍 Default Location (Geolocation disabled/failed)</h4></div>');
+                    map.setView([fallbackLat, fallbackLng], CONFIG.defaultZoom);
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
+        // ============================================================
+        // WALK WITH ME MODE
+        // ============================================================
+
+        function toggleWalkMode() {
+            isWalkMode = !isWalkMode;
+            const btn = document.getElementById('walkModeBtn');
+            const banner = document.getElementById('walkBanner');
+
+            if (isWalkMode) {
+                btn.classList.add('active');
+                banner.classList.add('active');
+
+                walkModeWatcher = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        updateUserPosition(lat, lng, pos.coords.accuracy);
+                    },
+                    (err) => {
+                        showToast('Location tracking lost', 'error');
+                        toggleWalkMode();
+                    },
+                    { enableHighAccuracy: true, maximumAge: 5000 }
+                );
+
+                showToast('Walk With Me mode activated — stay safe!', 'success');
+            } else {
+                btn.classList.remove('active');
+                banner.classList.remove('active');
+
+                if (walkModeWatcher !== null) {
+                    navigator.geolocation.clearWatch(walkModeWatcher);
+                    walkModeWatcher = null;
+                }
+                showToast('Walk With Me mode deactivated', 'info');
+            }
+        }
+
+        // ============================================================
+        // DARK MODE
+        // ============================================================
+
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            const btn = document.getElementById('darkModeBtn');
+
+            if (isDarkMode) {
+                map.removeLayer(TILES.light);
+                TILES.dark.addTo(map);
+                btn.innerHTML = '<i class="fas fa-moon"></i>';
+            } else {
+                map.removeLayer(TILES.dark);
+                TILES.light.addTo(map);
+                btn.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+        }
+
+        // ============================================================
+        // INCIDENT REPORTING
+        // ============================================================
+
+        function openReportModal() {
+            document.getElementById('reportModal').classList.add('active');
+        }
+
+        function closeReportModal() {
+            document.getElementById('reportModal').classList.remove('active');
+            if (reportClickMarker) {
+                map.removeLayer(reportClickMarker);
+                reportClickMarker = null;
+            }
+        }
+
+        function setReportLocation(lat, lng) {
+            reportLocation = { lat, lng };
+
+            if (reportClickMarker) map.removeLayer(reportClickMarker);
+
+            const reportIcon = L.divIcon({
+                className: 'report-marker',
+                html: `<div style="
+                    width: 30px; height: 30px;
+                    background: rgba(239, 68, 68, 0.3);
+                    border: 2px solid #ef4444;
+                    border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    animation: pulse-dot 1.5s infinite;
+                "><div style="width:10px;height:10px;background:#ef4444;border-radius:50%;"></div></div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+
+            reportClickMarker = L.marker([lat, lng], { icon: reportIcon }).addTo(map);
+
+            document.getElementById('reportLocationNotice').innerHTML = `
+                <i class="fas fa-check-circle"></i>
+                <span>Location set: ${lat.toFixed(4)}, ${lng.toFixed(4)}</span>
+            `;
+        }
+
+        function selectSeverity(el, level) {
+            document.querySelectorAll('.severity-btn').forEach(b => b.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedSeverity = level;
+        }
+
+        async function submitIncidentReport() {
+            const type = document.getElementById('reportType').value;
+            const desc = document.getElementById('reportDesc').value;
+
+            if (!type) {
+                showToast('Please select an incident type', 'error');
+                return;
+            }
+
+            if (!reportLocation) {
+                showToast('Please enable location or click on the map', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('submitReportBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+            try {
+                const res = await fetch('/api/safety/report-incident', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        latitude: reportLocation.lat,
+                        longitude: reportLocation.lng,
+                        type: type,
+                        severity: selectedSeverity,
+                        description: desc
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast('Incident reported successfully. Thank you!', 'success');
+                    closeReportModal();
+                    refreshData();
+                    // Reset form
+                    document.getElementById('reportType').value = '';
+                    document.getElementById('reportDesc').value = '';
+                    selectedSeverity = 3;
+                    document.querySelectorAll('.severity-btn').forEach((b, i) => {
+                        b.classList.toggle('selected', i === 2);
+                    });
+                } else {
+                    showToast(data.error || 'Failed to submit report', 'error');
+                }
+            } catch (err) {
+                showToast('Network error. Please try again.', 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Report';
+        }
+
+        // ============================================================
+        // PROXIMITY ENGINE
+        // ============================================================
+
+        function checkProximity(lat, lng) {
+            let nearestHotspot = null;
+            let minDistance = Infinity;
+
+            activeHotspots.forEach(h => {
+                const dist = getDistance(lat, lng, h.latitude, h.longitude);
+                if (dist < h.radius + 50) { // Within radius + 50m buffer
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nearestHotspot = h;
+                    }
+                }
+            });
+
+            if (nearestHotspot) {
+                const severity = nearestHotspot.max_severity;
+                if (severity >= 4) {
+                    showHotspotAlert(nearestHotspot);
+                } else {
+                    showToast(`Caution: Entering a moderate safety zone.`, 'info');
+                }
+            }
+        }
+
+        function showHotspotAlert(h) {
+            const banner = document.getElementById('walkBanner');
+            banner.style.border = '2px solid var(--accent-red)';
+            banner.style.boxShadow = '0 0 30px rgba(239, 68, 68, 0.5)';
+            banner.querySelector('.walk-title').textContent = '⚠️ DANGER: HOTSPOT DETECTED';
+            banner.querySelector('.walk-title').style.color = 'var(--accent-red)';
+            banner.querySelector('i').className = 'fas fa-exclamation-triangle';
+            banner.querySelector('i').style.color = 'var(--accent-red)';
+
+            showToast(`DANGER: You are near a high-severity incident zone!`, 'error');
+
+            setTimeout(() => {
+                if (isWalkMode) {
+                    banner.style.border = '1px solid var(--accent-green)';
+                    banner.style.boxShadow = '0 4px 30px rgba(34, 197, 94, 0.2)';
+                    banner.querySelector('.walk-title').textContent = 'Walk With Me Active';
+                    banner.querySelector('.walk-title').style.color = 'var(--accent-green)';
+                    banner.querySelector('i').className = 'fas fa-person-walking';
+                    banner.querySelector('i').style.color = 'var(--accent-green)';
+                }
+            }, 10000);
+        }
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // metres
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c; // in metres
+        }
+
+        // ============================================================
+        // SIMULATION ENGINE (TESTING)
+        // ============================================================
+
+        function simulateMovement() {
+            if (activeHotspots.length === 0) {
+                showToast("Wait for data to load before simulating", "error");
+                return;
+            }
+
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+                showToast("Simulation stopped", "info");
+                return;
+            }
+
+            if (!isWalkMode) toggleWalkMode();
+
+            // Fallback to campus center if map center is somehow invalid/not set
+            let currentLat = map.getCenter().lat || CONFIG.campusCenter[0];
+            let currentLng = map.getCenter().lng || CONFIG.campusCenter[1];
+
+            // Default target if no hotspots
+            let target = activeHotspots.length > 0 ? activeHotspots[0] : { latitude: currentLat + 0.01, longitude: currentLng + 0.01 };
+
+            showToast("Simulating movement towards nearest hotspot...", "info");
+
+            simulationInterval = setInterval(() => {
+                currentLat += (target.latitude - currentLat) * 0.05;
+                currentLng += (target.longitude - currentLng) * 0.05;
+
+                updateUserPosition(currentLat, currentLng, 10);
+
+                const dist = getDistance(currentLat, currentLng, target.latitude, target.longitude);
+                if (dist < 20) {
+                    clearInterval(simulationInterval);
+                    simulationInterval = null;
+                    showToast("Destination reached (simulated)", "success");
+                }
+            }, 1000);
+        }
+
+        function updateUserPosition(lat, lng, accuracy) {
+            if (userMarker) userMarker.setLatLng([lat, lng]);
+            if (userAccuracyCircle) {
+                userAccuracyCircle.setLatLng([lat, lng]);
+                userAccuracyCircle.setRadius(accuracy);
+            }
+            map.panTo([lat, lng]);
+            checkProximity(lat, lng);
+        }
+
+        // ============================================================
+        // UI HELPERS
+        // ============================================================
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const icons = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle' };
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas fa-${icons[type]}"></i> ${message}`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100px)';
+                toast.style.transition = 'all 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', initMap);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Command Center - SafeNest Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=1771740002">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin_tactical.css') }}">
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;600;800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="admin-body">
+    <aside class="tactical-sidebar">
+        <div class="brand">🛡️ SafeNest</div>
+
+        <div class="nav-group">
+            <a href="/admin" class="nav-item active">
+                <span>📊 Dashboard</span>
+            </a>
+            <a href="/map" class="nav-item">
+                <span>🗺️ Tactical Map</span>
+            </a>
+            <a href="/red-desk" class="nav-item">
+                <span>⚖️ Justice Portal</span>
+            </a>
+            <a href="/whistleblower" class="nav-item">
+                <span>👤 Intelligence</span>
+            </a>
+        </div>
+
+        <div class="mt-auto nav-group">
+            <div class="nav-item" style="opacity: 0.6; font-size: 0.8rem; pointer-events: none;">
+                CMD_STATUS: <span class="led led-g ml-2"></span> OPERATIONAL
+            </div>
+            <a href="#" onclick="logout()" class="nav-item">
+                <span>🔓 Terminate session</span>
+            </a>
+        </div>
+    </aside>
+
+    <header class="admin-header">
+        <div class="flex align-center gap-1">
+            <h2 style="margin: 0; font-weight: 800; letter-spacing: -2px; font-size: 2.2rem;">COMMAND CENTER</h2>
+            <div class="security-badge">AUTH_LEVEL_05</div>
+        </div>
+        <div class="flex align-center gap-3">
+            <div class="text-muted" style="font-family: var(--font-mono); font-size: 0.95rem;">
+                <span id="current-time">00:00:00 UTC</span>
+            </div>
+            <div class="user-profile flex align-center gap-2">
+                <div style="text-align: right;">
+                    <div style="font-weight: 800; font-size: 0.9rem; letter-spacing: 1px;">SARDAR MASTER</div>
+                    <div style="font-size: 0.65rem; color: var(--tech-purple); font-family: var(--font-mono);">
+                        ROOT_ACCESS_GRANTED</div>
+                </div>
+                <div class="avatar"
+                    style="width: 40px; height: 40px; background: var(--tech-purple); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 1px solid var(--card-border);">
+                    SM</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="admin-container">
+        <!-- Metric Cards -->
+        <div class="tactical-card span-4 square-card shape-slant" data-id="SEC_GRID_01">
+            <div class="bracket bracket-tl"></div>
+            <div class="bracket bracket-tr"></div>
+            <div class="scan-bar"></div>
+            <h4>Active Guardians</h4>
+            <div class="metric-main" id="active-guardians-count">24</div>
+            <div class="metric-sub">
+                <span>Live Units</span>
+                <span style="color: var(--success);">↑ 12%</span>
+            </div>
+            <div
+                style="font-size: 0.65rem; color: var(--text-muted); margin-top: 1.5rem; font-family: var(--font-mono); line-height: 1.5;">
+                NODE_LATENCY: 12ms<br>
+                UPLINK: STABLE_SSL_AES256
+            </div>
+        </div>
+
+        <div class="tactical-card span-4 square-card shape-bevel" data-id="SOS_NET_02">
+            <div class="bracket bracket-tl"></div>
+            <div class="bracket bracket-tr"></div>
+            <div class="scan-bar"></div>
+            <h4>Live SOS Alerts</h4>
+            <div class="metric-main" id="active-alerts-count" style="color: var(--tech-pink);">0</div>
+            <div class="metric-sub">
+                <span>Active Events</span>
+                <span style="color: var(--tech-pink);">CLEAR</span>
+            </div>
+            <div
+                style="font-size: 0.65rem; color: var(--text-muted); margin-top: 1.5rem; font-family: var(--font-mono); line-height: 1.5;">
+                AVG_RESP: 02:14<br>
+                QRT_STATUS: DEPLOYMENT_READY
+            </div>
+        </div>
+
+        <div class="tactical-card span-4 square-card shape-slant" data-id="AI_INTEL_03">
+            <div class="bracket bracket-tl"></div>
+            <div class="bracket bracket-tr"></div>
+            <div class="scan-bar"></div>
+            <h4>Grid Intelligence</h4>
+            <div class="metric-main">94<span style="font-size: 1.5rem; opacity: 0.6;">%</span></div>
+            <div class="metric-sub">
+                <span>Safety Index</span>
+                <span style="color: var(--tech-blue);">OPTIMIZED</span>
+            </div>
+            <div
+                style="font-size: 0.65rem; color: var(--text-muted); margin-top: 1.5rem; font-family: var(--font-mono); line-height: 1.5;">
+                TRIAGE: AUTO_ENABLED<br>
+                THREAT: LOW_PROB_SCAN
+            </div>
+        </div>
+
+        <!-- Roster (Slant shape) -->
+        <div class="tactical-card span-6 square-card shape-trap" data-id="USR_DB_04">
+            <div class="bracket bracket-bl"></div>
+            <div class="bracket bracket-br"></div>
+            <div class="flex justify-between align-center mb-2">
+                <h4>Sector Roster</h4>
+                <span class="led led-g"></span>
+            </div>
+            <div style="flex: 1; overflow-y: auto;">
+                <ul id="registered-user-list" class="user-list roster-list" style="padding-right: 0.5rem;">
+                    <li class="text-muted" style="font-family: var(--font-mono); font-size: 0.8rem;">SYNCING_DATABASE...
+                    </li>
+                </ul>
+            </div>
+            <div class="mt-2 text-muted"
+                style="font-size: 0.6rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.75rem; font-family: var(--font-mono);">
+                LAST_SYNC: <span id="sync-time">JUST NOW</span>
+            </div>
+        </div>
+
+        <!-- Active Tracking (Hex shape fallback) -->
+        <div class="tactical-card span-6 square-card shape-bevel" data-id="UNIT_TRK_05">
+            <div class="bracket bracket-bl"></div>
+            <div class="bracket bracket-br"></div>
+            <div class="flex justify-between align-center mb-2">
+                <h4>Active Unit Status</h4>
+                <div class="flex gap-1 align-center">
+                    <span class="led led-g"></span>
+                    <span
+                        style="font-size: 0.65rem; font-family: var(--font-mono); color: var(--success);">FEED_LIVE</span>
+                </div>
+            </div>
+            <div style="flex: 1; overflow-y: auto;">
+                <ul id="active-user-list" class="user-list tracking-list" style="padding-right: 0.5rem;">
+                    <li class="text-muted" style="font-family: var(--font-mono); font-size: 0.8rem;">
+                        SCANNING_FOR_SIGNALS...</li>
+                </ul>
+            </div>
+            <div class="mt-2 flex justify-between align-center"
+                style="font-size: 0.6rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.75rem; font-family: var(--font-mono);">
+                <span>POLL: 5000ms</span>
+                <span style="color: var(--tech-purple);">FILTER: CAMPUS_SECTOR_A</span>
+            </div>
+        </div>
+
+        <!-- Broadcast (Small card) -->
+        <div class="tactical-card span-3 shape-slant" style="min-height: 180px;" data-id="BC_CMD_06">
+            <div class="bracket bracket-tl"></div>
+            <h4>Tactical Broadcast</h4>
+            <div
+                style="background: rgba(0,0,0,0.3); padding: 0.75rem; margin: 0.5rem 0; border-left: 2px solid var(--tech-purple);">
+                <textarea id="broadcast-text" class="broadcast-textarea" placeholder="Enter directive..." rows="2"
+                    style="font-size: 0.8rem;"></textarea>
+            </div>
+            <button onclick="sendBroadcast()" class="btn btn-primary btn-block"
+                style="padding: 0.5rem; font-size: 0.75rem; letter-spacing: 2px; margin-top: auto;">EMIT SIGNAL</button>
+            <p id="broadcast-status" class="mt-1 text-center text-muted"
+                style="font-size: 0.55rem; font-family: var(--font-mono);"></p>
+        </div>
+
+        <!-- Justice (Small card) -->
+        <div class="tactical-card span-3 shape-slant" style="min-height: 180px;" data-id="JUS_ANL_07">
+            <div class="bracket bracket-tr"></div>
+            <h4>Justice Trends</h4>
+            <div id="justice-stats-container"
+                style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 0.5rem;">
+                <p class="text-muted" style="font-size: 0.7rem; font-family: var(--font-mono);">PROCESSING...</p>
+            </div>
+        </div>
+
+        <!-- SOS Feed (Full width) -->
+        <div class="tactical-card span-12 shape-bevel" style="margin-top: 1rem;" data-id="CMD_FEED_08">
+            <div class="scan-bar"></div>
+            <div class="flex justify-between align-center">
+                <h4>Tactical Alert Intelligence Feed</h4>
+                <div class="flex align-center gap-1">
+                    <span
+                        style="font-size: 0.65rem; font-family: var(--font-mono); color: var(--tech-pink);">ENCRYPTION_LAYER_6A</span>
+                    <span class="led led-r"></span>
+                </div>
+            </div>
+            <div style="overflow-x: auto; margin-top: 1.5rem;">
+                <table class="tactical-table" id="alerts-table">
+                    <thead>
+                        <tr>
+                            <th>IDENTIFIER</th>
+                            <th>TIMESTAMP</th>
+                            <th>LOC_COORDINATES</th>
+                            <th>RESPONDER_UNIT</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" class="text-center text-muted"
+                                style="padding: 3rem; font-family: var(--font-mono); letter-spacing: 3px; font-size: 0.9rem;">
+                                RECEPTOR_IDLE</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Intel Disclosures -->
+        <div class="tactical-card span-12 shape-slant"
+            style="border-color: var(--tech-blue); margin-top: 1rem; min-height: 350px;" data-id="INTEL_INB_09">
+            <div class="flex justify-between align-center mb-3">
+                <h4 style="color: var(--tech-blue);">Asymmetric Intelligence Disclosures</h4>
+                <div class="flex align-center gap-1">
+                    <span
+                        style="font-size: 0.65rem; font-family: var(--font-mono); color: var(--tech-blue);">ZERO_KNOWLEDGE_VAULT</span>
+                    <div class="led led-r"></div>
+                </div>
+            </div>
+            <div id="anonymous-reports-list"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1.5rem;">
+                <p class="text-muted text-center"
+                    style="font-family: var(--font-mono); grid-column: 1 / -1; padding: 4rem; letter-spacing: 2px;">
+                    INBOX_ENCRYPTED</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Admin Whistleblower Chat Modal -->
+    <div id="admin-chat-modal" class="triage-modal">
+        <div class="modal-content"
+            style="border: 2px solid var(--tech-blue); background: #030014; max-width: 650px; clip-path: polygon(0 0, 95% 0, 100% 5%, 100% 100%, 5% 100%, 0 95%);">
+            <div class="flex justify-between align-center mb-3">
+                <h3
+                    style="font-family: var(--font-mono); color: var(--tech-blue); margin: 0; font-size: 1.2rem; letter-spacing: 2px;">
+                    💬 COMMS_LINK_STABLE</h3>
+                <button onclick="closeAdminChat()"
+                    style="background: none; border: none; color: white; font-size: 2rem; cursor: pointer;">&times;</button>
+            </div>
+            <div id="admin-chat-messages" class="chat-box"
+                style="background: rgba(0,0,0,0.8); border: 1px solid rgba(59, 130, 246, 0.3); height: 380px; padding: 1.5rem;">
+            </div>
+            <div class="flex gap-1 mt-3">
+                <input type="text" id="admin-chat-input" class="form-control" placeholder="Type transmission..."
+                    style="flex: 1; background: #0a0a0a; color: white; font-family: var(--font-mono); border: 1px solid var(--tech-blue); height: 50px; padding: 0 1rem;">
+                <button onclick="sendAdminReply()" class="btn btn-primary"
+                    style="padding: 0 2rem; height: 50px; font-weight: 800;">TRANSMIT</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initAdmin();
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            // Randomly update sync time text
+            setInterval(() => {
+                const el = document.getElementById('sync-time');
+                if (el) el.textContent = Math.floor(Math.random() * 5) + 'ms AGO';
+            }, 3000);
+        });
+
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toISOString().split('T')[1].split('.')[0] + ' UTC';
+            const clockEl = document.getElementById('current-time');
+            if (clockEl) clockEl.textContent = timeStr;
+        }
+    </script>
+</body>
+
+</html>

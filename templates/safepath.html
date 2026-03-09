@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafePath AI - Tactical Routing</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=1771740002">
+    <link rel="stylesheet" href="{{ url_for('static', filename='tactical.css') }}">
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .safepath-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .route-option {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .route-option:hover,
+        .route-option.active {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+            transform: translateX(10px);
+        }
+
+        .safety-score {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--success-color);
+        }
+
+        .annotation {
+            font-size: 0.75rem;
+            background: rgba(0, 210, 255, 0.1);
+            color: #00d2ff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 4px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        /* 3D Heatmap Controls */
+        .heatmap-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(10, 11, 20, 0.9);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--primary);
+            z-index: 10;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="/" class="brand">🛡️ SafeNest</a>
+        <div class="nav-links">
+            <a href="/dashboard">Back to Dash</a>
+            <a href="/safepath" class="active">SafePath AI</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="flex justify-between align-center mt-2">
+            <h1>🛰️ SafePath AI Tactical Router</h1>
+            <div class="badge badge-success">GCEK GRID ONLINE</div>
+        </div>
+
+        <div class="safepath-container">
+            <div class="sidebar">
+                <div class="card p-2 mb-2">
+                    <h4 class="mb-1">Destination Search</h4>
+                    <div class="form-group mb-1">
+                        <label>Start Point</label>
+                        <input type="text" id="origin-input" placeholder="Current Location" class="form-control"
+                            style="width: 100%;">
+                    </div>
+                    <div class="form-group mb-1">
+                        <label>Destination</label>
+                        <input type="text" id="dest-input" placeholder="Main Library, Hostel B..." class="form-control"
+                            style="width: 100%;">
+                    </div>
+                    <button onclick="calculateRoutes()" class="btn btn-primary btn-block">Analyze Safe Routes</button>
+                </div>
+
+                <div id="route-options-list">
+                    <!-- Routes will appear here -->
+                    <p class="text-muted text-center p-2">Enter coordinates to begin tactical analysis.</p>
+                </div>
+            </div>
+
+            <div style="position: relative;">
+                <div id="map"></div>
+
+                <!-- Tactical HUD Overlay -->
+                <div class="tactical-hud" id="main-hud">
+                    <div class="hud-frame"></div>
+                    <div class="hud-corner hud-tl"></div>
+                    <div class="hud-corner hud-tr"></div>
+                    <div class="hud-corner hud-bl"></div>
+                    <div class="hud-corner hud-br"></div>
+
+                    <!-- HUD Data Panels -->
+                    <div class="hud-data-panel hud-left">
+                        <div class="card-scanline"></div>
+                        <h6 class="mb-1" style="color: var(--squad-neon); font-size: 0.7rem; letter-spacing: 2px;">
+                            SYSTEM_TELEMETRY</h6>
+                        <div class="flex flex-column gap-1">
+                            <div class="flex justify-between align-center" style="font-size: 0.75rem;">
+                                <span>SIGNAL_STRENGTH</span>
+                                <span id="hud-signal" class="tactical-status-pill">98%</span>
+                            </div>
+                            <div class="flex justify-between align-center" style="font-size: 0.75rem;">
+                                <span>SATELLITE_LOCK</span>
+                                <span id="hud-gps" class="tactical-status-pill">7_SV</span>
+                            </div>
+                            <div class="flex justify-between align-center" style="font-size: 0.75rem;">
+                                <span>GRID_SYNC</span>
+                                <span class="tactical-status-pill">ACTIVE</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hud-data-panel hud-right">
+                        <div class="card-scanline"></div>
+                        <h6 class="mb-1" style="color: var(--squad-neon); font-size: 0.7rem; letter-spacing: 2px;">
+                            ENVIRONMENT_SCAN</h6>
+                        <div class="flex flex-column gap-1">
+                            <div class="flex justify-between align-center" style="font-size: 0.75rem;">
+                                <span>INCIDENT_LEVEL</span>
+                                <span id="hud-threat" class="tactical-status-pill"
+                                    style="border-color: #ff0077; color: #ff0077;">LOW</span>
+                            </div>
+                            <div class="flex justify-between align-center" style="font-size: 0.75rem;">
+                                <span>LIGHTING_LUX</span>
+                                <span id="hud-lighting" class="tactical-status-pill">240lx</span>
+                            </div>
+                            <div class="flex justify-between align-center" style="font-size: 0.75rem;">
+                                <span>REF_COORD</span>
+                                <span id="hud-coords" class="tactical-status-pill">78.96, 20.59</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="heatmap-controls">
+                    <h5 class="mb-1" style="color: var(--primary);">Data Layers</h5>
+                    <div class="flex flex-column gap-1">
+                        <label class="flex align-center gap-1" style="font-size: 0.9rem;">
+                            <input type="checkbox" id="layer-lighting" checked> Lighting Coverage
+                        </label>
+                        <label class="flex align-center gap-1" style="font-size: 0.9rem;">
+                            <input type="checkbox" id="layer-cctv" checked> CCTV Grid
+                        </label>
+                        <label class="flex align-center gap-1" style="font-size: 0.9rem;">
+                            <input type="checkbox" id="layer-incidents" checked> Incident Density
+                        </label>
+                        <label class="flex align-center gap-1" style="font-size: 0.9rem;">
+                            <input type="checkbox" id="layer-3d-heat" checked> 3D Threat Heatmap
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='safepath.js') }}"></script>
+</body>
+
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Red Desk - SafeNest Directory</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=1771740001">
+    <style>
+        .triage-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .modal-content {
+            background: #0b0814;
+            border: 1px solid #6366f1;
+            width: 90%;
+            max-width: 600px;
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: 24px;
+            box-shadow: 0 0 50px rgba(99, 102, 241, 0.3);
+        }
+
+        .chat-box {
+            height: 300px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .msg {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            max-width: 80%;
+        }
+
+        .msg-ai {
+            background: #6366f1;
+            color: white;
+            align-self: flex-start;
+        }
+
+        .msg-user {
+            background: #333;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-column {
+            flex-direction: column;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .align-center {
+            align-items: center;
+        }
+
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+
+        .gap-1 {
+            gap: 0.5rem;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes breathe {
+            0% {
+                box-shadow: 0 0 40px rgba(99, 102, 241, 0.2);
+            }
+
+            50% {
+                box-shadow: 0 0 60px rgba(99, 102, 241, 0.5);
+            }
+
+            100% {
+                box-shadow: 0 0 40px rgba(99, 102, 241, 0.2);
+            }
+        }
+    </style>
+</head>
+
+<body class="dashboard-page">
+    <div class="cosmos-container" style="opacity: 0.15;"></div>
+
+    <div id="triage-modal" class="triage-modal">
+        <div class="modal-content">
+            <div class="flex justify-between align-center mb-2">
+                <h3>🤖 AI Emergency Triage</h3>
+                <button onclick="closeTriage()"
+                    style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <p class="text-muted mb-2">Describe your situation. I'll summarize it for responders and give you immediate
+                instructions.</p>
+            <div id="triage-chat" class="chat-box">
+                <div class="msg msg-ai">SafeNest AI active. What is your emergency?</div>
+            </div>
+            <div class="form-group flex gap-1">
+                <input type="text" id="triage-input" class="form-control" placeholder="Type here..."
+                    style="flex: 1; background: #1a1625; color: white; border: 1px solid #333;">
+                <button onclick="sendTriage()" class="btn btn-primary">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <a href="/" class="brand">🛡️ SafeNest</a>
+        <div class="nav-links">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/map">Safety Map</a>
+            <a href="/red-desk" class="active">Red Desk</a>
+            <a href="/logout" class="btn-logout">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header class="text-center mb-4">
+            <h1 style="font-size: 3.5rem; color: #ef4444; text-shadow: 0 0 30px rgba(239, 68, 68, 0.5);">The Red Desk
+            </h1>
+            <p class="text-muted">Live responder tracking and AI-powered crisis routing.</p>
+            <button onclick="openTriage()" class="btn mt-2"
+                style="background: linear-gradient(45deg, #ef4444, #6366f1); border: none; padding: 0.8rem 2rem; border-radius: 50px; font-weight: bold; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);">⚡
+                PANIC MODE: START AI TRIAGE</button>
+        </header>
+
+        <!-- Live Responder Alert (Hidden by default) -->
+        <div id="responder-alert" class="card mb-2"
+            style="display: none; border-color: #6366f1; animation: breathe 2s infinite;">
+            <div class="flex align-center gap-1">
+                <div class="spinner"></div>
+                <div>
+                    <strong id="responder-title">Responder Dispatched</strong>
+                    <p class="text-muted" id="responder-status">Officer Alpha is 400m away. ETA: 2 mins.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="red-desk-grid">
+            <!-- Section 1: Emergency Directives -->
+            <div class="section-divider">
+                <h2 style="color: #ef4444;">🚨 Emergency Directives</h2>
+            </div>
+
+            <!-- Security -->
+            <div class="tactical-card accent-emergency">
+                <span class="status-badge">24/7 ACTIVE</span>
+                <div class="icon-wrap">🚨</div>
+                <h3>Campus Security</h3>
+                <p>Immediate physical intervention and tactical emergency response for on-campus threats.</p>
+                <a href="tel:911" class="btn btn-primary btn-block">Quick Command: Call</a>
+            </div>
+
+            <!-- Medical -->
+            <div class="tactical-card accent-medical">
+                <span class="status-badge">PARAMEDIC SYNC</span>
+                <div class="icon-wrap">🏥</div>
+                <h3>Medical Center</h3>
+                <p>Advanced first aid, medical stabilization, and direct ambulance dispatch protocols.</p>
+                <a href="tel:108" class="btn btn-primary btn-block" style="background: #10b981;">Initialize Call</a>
+            </div>
+
+            <!-- Police -->
+            <div class="tactical-card accent-police">
+                <span class="status-badge">EXT-GRID OPS</span>
+                <div class="icon-wrap">👮</div>
+                <h3>Local Police</h3>
+                <p>City law enforcement coordination for incidents involving off-campus or external entities.</p>
+                <a href="tel:100" class="btn btn-primary btn-block" style="background: #3b82f6;">Contact HQ</a>
+            </div>
+
+            <!-- Section 2: Support & Infrastructure -->
+            <div class="section-divider">
+                <h2 style="color: #6366f1;">📡 Support & Infrastructure</h2>
+            </div>
+
+            <!-- Counseling -->
+            <div class="tactical-card accent-support">
+                <span class="status-badge">ENCRYPTED LINE</span>
+                <div class="icon-wrap">🧠</div>
+                <h3>Crisis Hotline</h3>
+                <p>Mental health support, trauma stabilization, and anonymous therapeutic dialogue.</p>
+                <button class="btn btn-primary btn-block" style="background: #6366f1;">Start Conversation</button>
+            </div>
+
+            <!-- Women Help -->
+            <div class="tactical-card accent-women">
+                <span class="status-badge">GUARDIAN LINK</span>
+                <div class="icon-wrap">👩</div>
+                <h3>Women's Safety</h3>
+                <p>Specialized helpline dedicated to harassment response and gender-specific safety protocols.</p>
+                <a href="tel:1091" class="btn btn-primary btn-block" style="background: #f472b6;">Secure Alert</a>
+            </div>
+
+            <!-- Infrastructure -->
+            <div class="tactical-card accent-infra">
+                <span class="status-badge">GRID REPAIR</span>
+                <div class="icon-wrap">⚡</div>
+                <h3>Utility Control</h3>
+                <p>Report critical infrastructure failures: broken lighting, locked gates, or grid leaks.</p>
+                <button class="btn btn-primary btn-block" style="background: #fbbf24;">Log Report</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const chatBox = document.getElementById('triage-chat');
+        const modal = document.getElementById('triage-modal');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadContacts();
+        });
+
+        async function loadContacts() {
+            try {
+                const res = await fetch('/api/directory/contacts');
+                const data = await res.json();
+                if (data.success) {
+                    renderContacts(data.contacts);
+                }
+            } catch (e) {
+                console.error("Directory Load Error:", e);
+            }
+        }
+
+        function renderContacts(contacts) {
+            const grid = document.querySelector('.red-desk-grid');
+            grid.innerHTML = ''; // Clear hardcoded
+
+            // Group by category
+            const categories = {
+                'emergency': { title: '🚨 Emergency Directives', color: '#ef4444' },
+                'medical': { title: '🏥 Medical Support', color: '#10b981' },
+                'mental_health': { title: '🧠 Mental Health & Support', color: '#6366f1' },
+                'general': { title: '📡 Information & Utilities', color: '#fbbf24' }
+            };
+
+            const grouped = {};
+            contacts.forEach(c => {
+                if (!grouped[c.category]) grouped[c.category] = [];
+                grouped[c.category].push(c);
+            });
+
+            Object.keys(categories).forEach(cat => {
+                const list = grouped[cat];
+                if (!list) return;
+
+                const div = document.createElement('div');
+                div.className = 'section-divider';
+                div.innerHTML = `<h2 style="color: ${categories[cat].color};">${categories[cat].title}</h2>`;
+                grid.appendChild(div);
+
+                list.forEach(c => {
+                    const card = document.createElement('div');
+                    card.className = `tactical-card accent-${cat}`;
+                    card.innerHTML = `
+                        <span class="status-badge">${c.available_hours}</span>
+                        <div class="icon-wrap">${getIcon(c.icon)}</div>
+                        <h3>${c.name}</h3>
+                        <p>${c.description}</p>
+                        ${c.phone ? `<a href="tel:${c.phone}" class="btn btn-primary btn-block" style="background: ${categories[cat].color};">Call: ${c.phone}</a>` : ''}
+                        ${c.chat_url ? `<a href="${c.chat_url}" target="_blank" class="btn btn-outline btn-block mt-1">Live Chat</a>` : ''}
+                    `;
+                    grid.appendChild(card);
+                });
+            });
+        }
+
+        function getIcon(iconName) {
+            const icons = {
+                'shield': '🛡️',
+                'shield-check': '✅',
+                'heart-pulse': '🏥',
+                'brain': '🧠',
+                'phone': '📞'
+            };
+            return icons[iconName] || '📞';
+        }
+
+        function closeTriage() { modal.style.display = 'none'; }
+
+        async function sendTriage() {
+            const input = document.getElementById('triage-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            addMessage(msg, 'user');
+            input.value = '';
+
+            try {
+                const res = await fetch('/api/ai/triage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: msg })
+                });
+                const data = await res.json();
+
+                setTimeout(() => {
+                    addMessage(`Priority: ${data.priority}. ${data.instructions}`, 'ai');
+                    if (data.priority === 'CRITICAL') {
+                        document.getElementById('responder-alert').style.display = 'block';
+                    }
+                }, 1000);
+            } catch (e) {
+                addMessage("Connection error. Responders still alerted.", "ai");
+            }
+        }
+
+        function addMessage(text, role) {
+            const div = document.createElement('div');
+            div.className = `msg msg-${role}`;
+            div.textContent = text;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Socket Listeners for Advanced Dispatch Tracking
+        socket.on('live_responder_tracking', (data) => {
+            const alertBox = document.getElementById('responder-alert');
+            alertBox.style.display = 'block';
+            document.getElementById('responder-status').textContent =
+                `Responder at (${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}). Intercepting shortly.`;
+        });
+
+        socket.on('sos_dispatch_update', (data) => {
+            document.getElementById('responder-alert').style.display = 'block';
+            document.getElementById('responder-title').textContent = `${data.responder_name} Assigned`;
+            document.getElementById('responder-status').textContent = `Status: ${data.status}. Tracking live...`;
+        });
+    </script>
+</body>
+
+</html>

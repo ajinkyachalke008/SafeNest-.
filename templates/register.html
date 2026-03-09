@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - SafeNest</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=1771740000">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="/" class="brand">🛡️ SafeNest</a>
+        <div class="nav-links">
+            <a href="/login">Login</a>
+        </div>
+    </nav>
+
+    <div class="container" style="display: flex; align-items: center; justify-content: center; min-height: 80vh;">
+        <div class="card auth-card">
+            <h2 class="text-center" style="margin-bottom: 1.5rem;">Create Account</h2>
+            <form id="registerForm" onsubmit="handleAuth(event, '/api/register', '/login')">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Register</button>
+                <p id="register-msg" class="mt-2 text-center"></p>
+            </form>
+            <p class="text-center mt-2">
+                Already have an account? <a href="/login">Login</a>
+            </p>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='app.js') }}?v=1771740000"></script>
+</body>
+
+</html>

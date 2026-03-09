@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whistleblower Portal - SafeNest</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=1771740002">
+    <style>
+        .shadow-mode {
+            background: #050505 !important;
+            color: #a0a0a0 !important;
+        }
+
+        .shadow-card {
+            background: rgba(20, 20, 20, 0.6) !important;
+            border: 1px solid #333 !important;
+        }
+
+        .shadow-input {
+            background: #111 !important;
+            border: 1px solid #444 !important;
+            color: #fff !important;
+        }
+
+        .security-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #3b82f6;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body class="dashboard-page shadow-mode">
+    <div class="cosmos-container" style="opacity: 0.05;"></div>
+
+    <nav class="navbar" style="border-bottom: 1px solid #222;">
+        <a href="/" class="brand">🛡️ SafeNest</a>
+        <div class="nav-links">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/map">Safety Map</a>
+            <a href="/whistleblower" class="active">Justice Portal</a>
+            <a href="/logout" class="btn-logout">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="hero-container" style="margin-top: 5vh; text-align: left;">
+            <div class="security-badge">🔒 End-to-End Anonymous Encryption Enabled</div>
+            <h1 style="color: #fff;">Justice Portal</h1>
+            <p class="text-muted" style="max-width: 600px;">Report hazing, harassment, or administrative misconduct with
+                absolute certainty that your identity will never be linked to this data.</p>
+        </div>
+
+        <div class="dashboard-grid mt-4">
+            <div class="card shadow-card" style="grid-column: span 8;">
+                <h3>Submit Anonymous Disclosure</h3>
+                <form id="whistleblower-form" class="mt-2" onsubmit="submitDisclosure(event)">
+                    <div class="form-group">
+                        <label>Category of Misconduct</label>
+                        <select name="type" required class="form-control shadow-input" style="width: 100%;">
+                            <option value="" disabled selected>Select category...</option>
+                            <option value="Hazing">Hazing / Initiation Rituals</option>
+                            <option value="Harassment">Sexual or Verbal Harassment</option>
+                            <option value="Corruption">Administrative Malpractice</option>
+                            <option value="Bullying">Organized Bullying</option>
+                            <option value="Other">Other Sensitive Concern</option>
+                        </select>
+                    </div>
+                    <div class="form-group mt-2">
+                        <label>Detailed Disclosure</label>
+                        <textarea name="description" required class="form-control shadow-input"
+                            placeholder="Please provide specific details..."
+                            style="width: 100%; min-height: 150px;"></textarea>
+                    </div>
+                    <div class="mt-2 p-1 glass-bg rounded" style="font-size: 0.85rem; border: 1px dashed #444;">
+                        ⚠️ <b>Anonymity Protocol:</b> Your IP address, Session ID, and User Account will NOT be
+                        recorded. This report is cryptographically stripped of all metadata upon submission.
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block mt-2"
+                        style="background: #333; border: 1px solid #555;">Submit Encrypted Disclosure</button>
+                </form>
+            </div>
+
+            <!-- Two-Way Chat / Check Status -->
+            <div class="card shadow-card" style="grid-column: span 12;">
+                <h3>⚖️ Anonymous Justice Tracker</h3>
+                <p class="text-muted mb-2">Enter your Hash Code below to check for administrative questions or updates.
+                </p>
+                <div class="flex gap-1 mb-2">
+                    <input type="text" id="hash-input" class="form-control shadow-input"
+                        placeholder="Enter Reference Hash (e.g. 8A7B2C)" style="flex: 1;">
+                    <button onclick="checkStatus()" class="btn btn-primary">Check Status</button>
+                </div>
+
+                <div id="anonymous-chat-section" style="display: none;">
+                    <div id="chat-messages" class="chat-box"
+                        style="height: 250px; overflow-y: auto; background: rgba(0,0,0,0.3); border: 1px solid #333; border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                        <!-- Messages loaded here -->
+                    </div>
+                    <div class="flex gap-1">
+                        <input type="text" id="chat-input" class="form-control shadow-input"
+                            placeholder="Reply anonymously..." style="flex: 1;">
+                        <button onclick="sendReply()" class="btn btn-primary">Send Reply</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Global Justice Dashboard -->
+            <div class="card shadow-card" style="grid-column: span 12;">
+                <h3>📊 Campus Accountability Metrics</h3>
+                <div class="dashboard-grid mt-2" id="justice-stats"
+                    style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <!-- Stats loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function submitDisclosure(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            const btn = e.target.querySelector('button');
+            btn.textContent = "Stripping Metadata...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/whistleblower/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    const result = await res.json();
+                    alert("Report Submitted Successfully.\nSAVE THIS REFERENCE HASH: " + result.reference_hash + "\n\nYou will need it to check for replies.");
+                    e.target.reset();
+                    loadAnalytics();
+                }
+            } catch (err) { alert("Submission failed."); }
+            finally { btn.textContent = "Submit Encrypted Disclosure"; btn.disabled = false; }
+        }
+
+        async function checkStatus() {
+            const hash = document.getElementById('hash-input').value.toUpperCase();
+            if (!hash) return;
+
+            try {
+                const res = await fetch(`/api/whistleblower/chat/${hash}`);
+                if (!res.ok) throw new Error();
+                const chats = await res.json();
+
+                document.getElementById('anonymous-chat-section').style.display = 'block';
+                renderChats(chats);
+            } catch (e) { alert("Hash not found or connection error."); }
+        }
+
+        async function sendReply() {
+            const hash = document.getElementById('hash-input').value.toUpperCase();
+            const msg = document.getElementById('chat-input').value.trim();
+            if (!msg) return;
+
+            try {
+                const res = await fetch(`/api/whistleblower/chat/${hash}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg, role: 'WHISTLEBLOWER' })
+                });
+                const chats = await res.json();
+                renderChats(chats);
+                document.getElementById('chat-input').value = '';
+            } catch (e) { alert("Failed to send reply."); }
+        }
+
+        function renderChats(chats) {
+            const container = document.getElementById('chat-messages');
+            if (chats.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">No messages yet. Check back soon for administrative updates.</p>';
+                return;
+            }
+            container.innerHTML = chats.map(c => `
+                <div style="margin-bottom: 1rem; text-align: ${c.sender_role === 'WHISTLEBLOWER' ? 'right' : 'left'};">
+                    <span style="font-size: 0.7rem; color: #666;">${c.sender_role} • ${new Date(c.timestamp).toLocaleString()}</span>
+                    <div style="background: ${c.sender_role === 'WHISTLEBLOWER' ? '#333' : '#6366f1'}; color: white; padding: 0.5rem 1rem; border-radius: 12px; display: inline-block; max-width: 80%;">
+                        ${c.message}
+                    </div>
+                </div>
+            `).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function loadAnalytics() {
+            const res = await fetch('/api/justice/analytics');
+            const data = await res.json();
+            const container = document.getElementById('justice-stats');
+            container.innerHTML = data.map(s => `
+                <div class="glass-bg p-2 rounded text-center" style="border: 1px solid #333;">
+                    <div style="font-size: 0.8rem; color: #888;">${s.category}</div>
+                    <div style="font-size: 2rem; font-weight: bold; color: #fff;">${s.reports_count}</div>
+                    <div style="font-size: 0.7rem; color: #10b981;">${s.actions_taken} Actions Taken</div>
+                </div>
+            `).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', loadAnalytics);
+    </script>
+</body>
+
+</html>

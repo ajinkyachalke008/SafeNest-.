@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeNest - Your Safety, Our Priority</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+
+<body class="landing-page">
+    <div class="global-wash"></div>
+    <div class="cosmos-container">
+        <div class="stardust"></div>
+        <div class="stardust-mid"></div>
+        <div class="stardust-far"></div>
+        <div class="neon-portal">
+            <div class="portal-ring ring-1"></div>
+            <div class="portal-ring ring-2"></div>
+        </div>
+    </div>
+
+    <nav class="navbar landing-nav">
+        <div class="container-nav">
+            <a href="/" class="brand"><span style="color: #3b82f6;">🛡️</span> SafeNest</a>
+            <div class="nav-links">
+                <a href="/map">Safety Map</a>
+                <a href="/red-desk">Red Desk</a>
+                <a href="/ai-tools">AI Tools</a>
+                <a href="/login">Login</a>
+                <a href="/register" class="btn-white" style="box-shadow: 0 0 20px #bf40bf;">Sign Up</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="hero-container">
+        <div class="hero-content text-center">
+            <h1 class="hero-title">SafeNest: The Ultimate Campus Protection.</h1>
+            <p class="hero-subtitle">From real-time SOS to AI-driven triage and anonymous justice—experience the full
+                spectrum of campus safety.</p>
+
+            <div class="hero-actions">
+                <a href="/register" class="btn btn-white glow-btn">Get Started</a>
+                <a href="/login" class="btn btn-glass">Member Login</a>
+            </div>
+        </div>
+
+        <div class="features-grid">
+            <!-- Tier 1: Core Guardian -->
+            <div id="tier-1" class="tier-header">
+                <span class="section-label glow-text-blue">Tier 1</span>
+                <h2>🛡️ Core Guardian Protocol</h2>
+            </div>
+
+            <a href="/dashboard" class="glass-card tier-guardian" style="text-decoration: none; color: inherit;">
+                <div class="icon-wrap"><img src="{{ url_for('static', filename='sos_icon.png') }}" alt="SOS"
+                        class="feature-icon" style="width: 80px; height: 80px;"></div>
+                <div class="card-content">
+                    <h3>Instant SOS</h3>
+                </div>
+            </a>
+            <a href="/dashboard" class="glass-card tier-guardian" style="text-decoration: none; color: inherit;">
+                <div class="icon-wrap"><img src="{{ url_for('static', filename='tracking_icon.png') }}" alt="Tracking"
+                        class="feature-icon" style="width: 80px; height: 80px;"></div>
+                <div class="card-content">
+                    <h3>Real-time Tracking</h3>
+                </div>
+            </a>
+            <a href="/dashboard" class="glass-card tier-guardian" style="text-decoration: none; color: inherit;">
+                <div class="icon-wrap"><img src="{{ url_for('static', filename='night_icon.png') }}" alt="Night Risk"
+                        class="feature-icon" style="width: 80px; height: 80px;"></div>
+                <div class="card-content">
+                    <h3>Night Risk Logic</h3>
+                </div>
+            </a>
+            <a href="/dashboard" class="glass-card tier-guardian" style="text-decoration: none; color: inherit;">
+                <div class="icon-wrap" style="font-size: 2.5rem;">👥</div>
+                <div class="card-content">
+                    <h3>Tactical Squad Sync</h3>
+                </div>
+            </a>
+
+            <!-- Tier 2: Advanced Navigator -->
+            <div id="tier-2" class="tier-header">
+                <span class="section-label glow-text-purple">Tier 2</span>
+                <h2>🛰️ Advanced Navigator System</h2>
+            </div>
+
+            <a href="/safepath" class="glass-card tier-navigator" style="text-decoration: none; color: inherit;">
+                <div class="icon-wrap" style="font-size: 2.5rem;">🗺️</div>
+                <div class="card-content">
+                    <h3>SafeRoute Navigator</h3>
+                </div>
+            </a>
+            <a href="/red-desk" class="glass-card tier-navigator" style="text-decoration: none; color: inherit;">
+                <div class="icon-wrap" style="font-size: 2.5rem;">🚨</div>
+                <div class="card-content">
+                    <h3>The Red Desk</h3>
+                </div>
+            </a>
+            <a href="/whistleblower" class="glass-card tier-navigator" style="text-decoration: none; color: inherit;">
+                <div class="icon-wrap" style="font-size: 2.5rem;">👤</div>
+                <div class="card-content">
+                    <h3>Whistleblower</h3>
+                </div>
+            </a>
+
+            <!-- Tier 3: AI Justice Ecosystem -->
+            <div id="tier-3" class="tier-header" style="grid-column: span 12;">
+                <span class="section-label glow-text-red">Tier 3</span>
+                <h2>🤖 AI Justice Ecosystem</h2>
+            </div>
+
+            <a href="/dashboard" class="glass-card tier-justice" style="text-decoration: none; color: inherit;">
+                <div class="icon-wrap" style="font-size: 2.5rem;">💓</div>
+                <div class="card-content">
+                    <h3>Guardian Pulse</h3>
+                </div>
+            </a>
+
+            <a href="/ai-tools" class="glass-card tier-justice" style="text-decoration: none; color: inherit;">
+                <div class="icon-wrap" style="font-size: 2.5rem;">🧠</div>
+                <div class="card-content">
+                    <h3>AI Triage</h3>
+                </div>
+            </a>
+            <a href="/admin" class="glass-card tier-justice" style="text-decoration: none; color: inherit;">
+                <div class="icon-wrap" style="font-size: 2.5rem;">📡</div>
+                <div class="card-content">
+                    <h3>Dispatch Track</h3>
+                </div>
+            </a>
+            <a href="/admin" class="glass-card tier-justice" style="text-decoration: none; color: inherit;">
+                <div class="icon-wrap" style="font-size: 2.5rem;">⚖️</div>
+                <div class="card-content">
+                    <h3>Justice Stats</h3>
+                </div>
+            </a>
+        </div>
+    </main>
+
+    <div class="tactical-footer-marquee"
+        style="background: rgba(10,11,20,0.9); border-top: 1px solid var(--primary); padding: 5px 0; position: fixed; bottom: 0; width: 100%; z-index: 1000; overflow: hidden; white-space: nowrap; font-family: 'Courier New', monospace; font-size: 0.8rem; color: var(--primary);">
+        <div class="marquee-content" style="display: inline-block; animation: marquee 30s linear infinite;">
+            >> GCEK GRID STATUS: [OPTIMAL] -- ACTIVE GUARDIANS: 142 -- SIGNAL UPTIME: 99.9% -- AI TRIAGE: STANDBY --
+            SQUAD_SYNC: ENABLED -- SYSTEM_TIME: <span id="marquee-time"></span> -- ENCRYPTION: MIL-SPEC AES-256 --
+            DATA_FLOW: STABLE -- >> GCEK GRID STATUS: [OPTIMAL] -- ACTIVE GUARDIANS: 142 -- SIGNAL UPTIME: 99.9% -- AI
+            TRIAGE: STANDBY -- SQUAD_SYNC: ENABLED --
+        </div>
+    </div>
+
+    <style>
+        @keyframes marquee {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+    </style>
+    <script>
+        setInterval(() => {
+            document.getElementById('marquee-time').innerText = new Date().toLocaleTimeString();
+        }, 1000);
+    </script>
+
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+
+</html>

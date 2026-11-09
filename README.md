@@ -4,6 +4,8 @@ SafeNest is a comprehensive, real-time safety and security platform built with F
 
 ## 🚀 Features
 
+
+
 ### Core Capabilities
 * **SOS & Emergency Alerts:** One-click SOS capability that instantly alerts administrators with the user's real-time location.
 * **Safety Map (Tactical View):** An interactive map displaying active incident hotspots, safe corridors, and real-time user proximity alerts.

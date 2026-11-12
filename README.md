@@ -2,6 +2,7 @@
 
 SafeNest is a comprehensive, real-time safety and security platform built with Flask and WebSockets. It acts as a centralized dashboard and tactical hub for monitoring incidents, dispatching emergency responses (SOS), and maintaining community safety through data-driven insights.
 
+
 ## 🚀 Features
 
 
